@@ -14,6 +14,7 @@ import Chat from "./pages/chat/Chat";
 import ReturnConfirmation from "./pages/returns/ReturnConfirmation";
 import Wallet from "./pages/wallet/Wallet";
 import MyItems from "./pages/items/MyItems";
+import EditItem from "./pages/items/EditItem";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
           <Route path="/returns/:claimId" element={<ReturnConfirmation />}/>
           <Route path="/wallet" element={<Wallet />} />
           <Route path="/items/my-items" element={<MyItems />} />
+          <Route path="/items/:itemId/edit" element={<EditItem />} />
         </Route>
       </Routes>
     </BrowserRouter>

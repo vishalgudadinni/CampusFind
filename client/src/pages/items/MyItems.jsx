@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../../services/api";
 
 function MyItems() {
@@ -8,26 +8,34 @@ function MyItems() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [deleteItem, setDeleteItem] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const fetchMyItems = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await api.get("/items/my-items");
+
+      setItems(response.data.items);
+    } catch (error) {
+      console.error(
+        "My items loading error:",
+        error.response?.data?.message || error.message
+      );
+
+      setError(
+        error.response?.data?.message ||
+          "Unable to load your items."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchMyItems = async () => {
-      try {
-        const response = await api.get("/items/my-items");
-        setItems(response.data.items);
-      } catch (error) {
-        console.error(
-          "My items loading error:",
-          error.response?.data?.message || error.message
-        );
-
-        setError(
-          error.response?.data?.message ||
-            "Unable to load your items."
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchMyItems();
   }, []);
 
@@ -66,6 +74,49 @@ function MyItems() {
 
       default:
         return status;
+    }
+  };
+
+  const openDeleteModal = (item) => {
+    setDeleteError("");
+    setDeleteItem(item);
+  };
+
+  const closeDeleteModal = () => {
+    if (deleting) return;
+
+    setDeleteItem(null);
+    setDeleteError("");
+  };
+
+  const handleDelete = async () => {
+    if (!deleteItem) return;
+
+    try {
+      setDeleting(true);
+      setDeleteError("");
+
+      await api.delete(`/items/${deleteItem._id}`);
+
+      setItems((previousItems) =>
+        previousItems.filter(
+          (item) => item._id !== deleteItem._id
+        )
+      );
+
+      setDeleteItem(null);
+    } catch (error) {
+      console.error(
+        "Delete item error:",
+        error.response?.data?.message || error.message
+      );
+
+      setDeleteError(
+        error.response?.data?.message ||
+          "Unable to delete this item."
+      );
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -109,240 +160,351 @@ function MyItems() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 px-6 py-10 text-white">
-      <div className="mx-auto max-w-6xl">
+    <>
+      <div className="min-h-screen bg-slate-950 px-6 py-10 text-white">
+        <div className="mx-auto max-w-6xl">
 
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Link
-            to="/dashboard"
-            className="text-sm text-slate-400 transition hover:text-white"
-          >
-            ← Back to Dashboard
-          </Link>
-
-          <p className="mt-8 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-400">
-            CampusFind
-          </p>
-
-          <h1 className="mt-3 text-4xl font-bold sm:text-5xl">
-            My Items
-          </h1>
-
-          <p className="mt-3 max-w-2xl text-slate-400">
-            View and manage the lost and found items you have
-            reported on CampusFind.
-          </p>
-        </motion.div>
-
-        {/* Summary */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="mt-8 grid gap-4 sm:grid-cols-3"
-        >
-          <SummaryCard
-            title="Total Items"
-            value={items.length}
-            icon="📦"
-          />
-
-          <SummaryCard
-            title="Active"
-            value={items.filter((item) => item.status === "ACTIVE").length}
-            icon="🟢"
-          />
-
-          <SummaryCard
-            title="Returned"
-            value={items.filter((item) => item.status === "RETURNED").length}
-            icon="🤝"
-          />
-        </motion.div>
-
-        {/* Empty State */}
-        {items.length === 0 ? (
+          {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="mt-8 rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center shadow-xl backdrop-blur-xl"
+            transition={{ duration: 0.5 }}
           >
-            <div className="text-5xl">📦</div>
+            <Link
+              to="/dashboard"
+              className="text-sm text-slate-400 transition hover:text-white"
+            >
+              ← Back to Dashboard
+            </Link>
 
-            <h2 className="mt-5 text-xl font-semibold">
-              You haven't reported any items yet
-            </h2>
-
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
-              Report a lost or found item and it will appear here.
+            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.2em] text-indigo-400">
+              CampusFind
             </p>
 
-            <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-              <Link
-                to="/items/report-lost"
-                className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
-              >
-                Report Lost Item
-              </Link>
+            <h1 className="mt-3 text-4xl font-bold sm:text-5xl">
+              My Items
+            </h1>
 
-              <Link
-                to="/items/report-found"
-                className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.08]"
-              >
-                Report Found Item
-              </Link>
-            </div>
+            <p className="mt-3 max-w-2xl text-slate-400">
+              View and manage the lost and found items you have
+              reported on CampusFind.
+            </p>
           </motion.div>
-        ) : (
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
 
-            {items.map((item, index) => (
-              <motion.div
-                key={item._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{
-                  duration: 0.4,
-                  delay: 0.15 + index * 0.08,
-                }}
-                whileHover={{ y: -4 }}
-                className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl backdrop-blur-xl transition"
-              >
+          {/* Summary */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mt-8 grid gap-4 sm:grid-cols-3"
+          >
+            <SummaryCard
+              title="Total Items"
+              value={items.length}
+              icon="📦"
+            />
 
-                {/* Top Row */}
-                <div className="flex items-start justify-between gap-4">
+            <SummaryCard
+              title="Active"
+              value={
+                items.filter(
+                  (item) => item.status === "ACTIVE"
+                ).length
+              }
+              icon="🟢"
+            />
 
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
-                        item.type === "LOST"
-                          ? "border border-red-400/10 bg-red-400/[0.08]"
-                          : "border border-emerald-400/10 bg-emerald-400/[0.08]"
-                      }`}
-                    >
-                      {item.type === "LOST" ? "🔴" : "🟢"}
-                    </div>
+            <SummaryCard
+              title="Returned"
+              value={
+                items.filter(
+                  (item) => item.status === "RETURNED"
+                ).length
+              }
+              icon="🤝"
+            />
+          </motion.div>
 
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          {/* Empty State */}
+          {items.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="mt-8 rounded-3xl border border-white/10 bg-white/[0.03] p-10 text-center shadow-xl backdrop-blur-xl"
+            >
+              <div className="text-5xl">📦</div>
+
+              <h2 className="mt-5 text-xl font-semibold">
+                You haven't reported any items yet
+              </h2>
+
+              <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+                Report a lost or found item and it will appear here.
+              </p>
+
+              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+                <Link
+                  to="/items/report-lost"
+                  className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                >
+                  Report Lost Item
+                </Link>
+
+                <Link
+                  to="/items/report-found"
+                  className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.08]"
+                >
+                  Report Found Item
+                </Link>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="mt-8 grid gap-5 md:grid-cols-2">
+
+              {items.map((item, index) => (
+                <motion.div
+                  key={item._id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.4,
+                    delay: 0.15 + index * 0.08,
+                  }}
+                  whileHover={{ y: -4 }}
+                  className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 shadow-xl backdrop-blur-xl transition"
+                >
+
+                  {/* Top Row */}
+                  <div className="flex items-start justify-between gap-4">
+
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`flex h-11 w-11 items-center justify-center rounded-2xl ${
+                          item.type === "LOST"
+                            ? "border border-red-400/10 bg-red-400/[0.08]"
+                            : "border border-emerald-400/10 bg-emerald-400/[0.08]"
+                        }`}
+                      >
                         {item.type === "LOST"
-                          ? "Lost Item"
-                          : "Found Item"}
-                      </p>
+                          ? "🔴"
+                          : "🟢"}
+                      </div>
 
-                      <h2 className="mt-1 text-xl font-semibold">
-                        {item.title}
-                      </h2>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                          {item.type === "LOST"
+                            ? "Lost Item"
+                            : "Found Item"}
+                        </p>
+
+                        <h2 className="mt-1 text-xl font-semibold">
+                          {item.title}
+                        </h2>
+                      </div>
                     </div>
+
+                    <span
+                      className={`rounded-full border px-3 py-1.5 text-xs font-medium ${getStatusStyle(
+                        item.status
+                      )}`}
+                    >
+                      {getStatusLabel(item.status)}
+                    </span>
+
                   </div>
 
-                  <span
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium ${getStatusStyle(
-                      item.status
-                    )}`}
-                  >
-                    {getStatusLabel(item.status)}
-                  </span>
+                  {/* Description */}
+                  <p className="mt-5 line-clamp-2 text-sm leading-6 text-slate-400">
+                    {item.description}
+                  </p>
 
-                </div>
+                  {/* Details */}
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
 
-                {/* Description */}
-                <p className="mt-5 line-clamp-2 text-sm leading-6 text-slate-400">
-                  {item.description}
-                </p>
+                    <InfoItem
+                      label="Category"
+                      value={item.category}
+                    />
 
-                {/* Details */}
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <InfoItem
+                      label="Location"
+                      value={item.location}
+                    />
 
-                  <InfoItem
-                    label="Category"
-                    value={item.category}
-                  />
-
-                  <InfoItem
-                    label="Location"
-                    value={item.location}
-                  />
-
-                  <InfoItem
-                    label="Date"
-                    value={new Date(item.date).toLocaleDateString(
-                      "en-IN",
-                      {
+                    <InfoItem
+                      label="Date"
+                      value={new Date(
+                        item.date
+                      ).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
-                      }
+                      })}
+                    />
+
+                    <InfoItem
+                      label="Reported"
+                      value={new Date(
+                        item.createdAt
+                      ).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    />
+
+                  </div>
+
+                  {/* Actions */}
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+
+                    {item.status === "ACTIVE" && (
+                      <Link
+                        to={`/items/${item._id}/matches`}
+                        className="flex-1 rounded-2xl bg-white px-5 py-3 text-center text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
+                      >
+                        View Matches
+                      </Link>
                     )}
-                  />
 
-                  <InfoItem
-                    label="Reported"
-                    value={new Date(
-                      item.createdAt
-                    ).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  />
+                    {item.status !== "RETURNED" &&
+                      item.status !== "CLOSED" && (
+                        <>
+                          <Link
+                            to={`/items/${item._id}/edit`}
+                            className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-center text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] hover:text-white"
+                          >
+                            ✏️ Edit
+                          </Link>
 
-                </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openDeleteModal(item)
+                            }
+                            className="flex-1 rounded-2xl border border-red-400/10 bg-red-400/[0.05] px-5 py-3 text-sm font-medium text-red-300 transition hover:bg-red-400/[0.1]"
+                          >
+                            🗑️ Delete
+                          </button>
+                        </>
+                      )}
 
-                {/* Actions */}
-                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  </div>
 
-                  {item.status === "ACTIVE" && (
-                    <Link
-                      to={`/items/${item._id}/matches`}
-                      className="flex-1 rounded-2xl bg-white px-5 py-3 text-center text-sm font-semibold text-slate-900 transition hover:bg-slate-100"
-                    >
-                      View Matches
-                    </Link>
-                  )}
+                </motion.div>
+              ))}
 
-                  <button
-                    disabled
-                    className="flex-1 cursor-not-allowed rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-medium text-slate-600"
-                  >
-                    Manage Item
-                  </button>
+            </div>
+          )}
 
-                </div>
+          {/* Bottom Navigation */}
+          <div className="mt-10 flex flex-wrap gap-4">
 
-              </motion.div>
-            ))}
+            <Link
+              to="/items/report-lost"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07] hover:text-white"
+            >
+              + Report Lost
+            </Link>
+
+            <Link
+              to="/items/report-found"
+              className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07] hover:text-white"
+            >
+              + Report Found
+            </Link>
 
           </div>
-        )}
-
-        {/* Bottom Navigation */}
-        <div className="mt-10 flex flex-wrap gap-4">
-
-          <Link
-            to="/items/report-lost"
-            className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07] hover:text-white"
-          >
-            + Report Lost
-          </Link>
-
-          <Link
-            to="/items/report-found"
-            className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm text-slate-300 transition hover:bg-white/[0.07] hover:text-white"
-          >
-            + Report Found
-          </Link>
 
         </div>
-
       </div>
-    </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-6 backdrop-blur-sm"
+            onClick={closeDeleteModal}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              onClick={(event) => event.stopPropagation()}
+              className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900 p-7 shadow-2xl"
+            >
+
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-red-400/10 bg-red-400/[0.08] text-2xl">
+                🗑️
+              </div>
+
+              <h2 className="mt-5 text-2xl font-bold">
+                Delete this item?
+              </h2>
+
+              <p className="mt-3 text-sm leading-6 text-slate-400">
+                You're about to permanently delete:
+              </p>
+
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="font-semibold text-white">
+                  {deleteItem.title}
+                </p>
+
+                <p className="mt-1 text-xs text-slate-500">
+                  {deleteItem.type === "LOST"
+                    ? "Lost Item"
+                    : "Found Item"}{" "}
+                  • {deleteItem.category}
+                </p>
+              </div>
+
+              <p className="mt-4 text-xs leading-5 text-slate-600">
+                This action cannot be undone.
+              </p>
+
+              {/* Delete Error */}
+              {deleteError && (
+                <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-400/[0.06] p-4 text-sm text-red-300">
+                  {deleteError}
+                </div>
+              )}
+
+              {/* Modal Actions */}
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+
+                <button
+                  type="button"
+                  onClick={closeDeleteModal}
+                  disabled={deleting}
+                  className="flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3.5 text-sm font-medium text-slate-300 transition hover:bg-white/[0.08] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 rounded-2xl bg-red-500 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {deleting
+                    ? "Deleting..."
+                    : "Yes, Delete"}
+                </button>
+
+              </div>
+
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
