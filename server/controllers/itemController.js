@@ -230,8 +230,131 @@ const getMyItems = async (req, res) => {
   }
 };
 
+// Update an item reported by the logged-in user
+const updateItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+
+    const {
+      title,
+      description,
+      category,
+      location,
+      date,
+      image,
+      contactPreference,
+    } = req.body;
+
+    const item = await Item.findById(itemId);
+
+    if (!item) {
+      return res.status(404).json({
+        message: "Item not found.",
+      });
+    }
+
+    // Only the original reporter can edit the item
+    if (item.reportedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "You are not authorized to edit this item.",
+      });
+    }
+
+    // Returned/closed items cannot be modified
+    if (["RETURNED", "CLOSED"].includes(item.status)) {
+      return res.status(400).json({
+        message: "Returned or closed items cannot be edited.",
+      });
+    }
+
+    // Validate required fields
+    if (
+      !title ||
+      !description ||
+      !category ||
+      !location ||
+      !date
+    ) {
+      return res.status(400).json({
+        message: "Please fill in all required fields.",
+      });
+    }
+
+    // Update editable fields
+    item.title = title.trim();
+    item.description = description.trim();
+    item.category = category.trim();
+    item.location = location.trim();
+    item.date = date;
+
+    if (image !== undefined) {
+      item.image = image;
+    }
+
+    if (contactPreference !== undefined) {
+      item.contactPreference = contactPreference;
+    }
+
+    await item.save();
+
+    res.status(200).json({
+      message: "Item updated successfully.",
+      item,
+    });
+  } catch (error) {
+    console.error("Update item error:", error.message);
+
+    res.status(500).json({
+      message: "Server error while updating item.",
+    });
+  }
+};
+
+// Delete an item reported by the logged-in user
+const deleteItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+
+    const item = await Item.findById(itemId);
+
+    if (!item) {
+      return res.status(404).json({
+        message: "Item not found.",
+      });
+    }
+
+    // Only the original reporter can delete the item
+    if (item.reportedBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        message: "You are not authorized to delete this item.",
+      });
+    }
+
+    // Returned/closed items cannot be deleted
+    if (["RETURNED", "CLOSED"].includes(item.status)) {
+      return res.status(400).json({
+        message: "Returned or closed items cannot be deleted.",
+      });
+    }
+
+    await Item.findByIdAndDelete(itemId);
+
+    res.status(200).json({
+      message: "Item deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Delete item error:", error.message);
+
+    res.status(500).json({
+      message: "Server error while deleting item.",
+    });
+  }
+};
+
 module.exports = {
   createItem,
   getPotentialMatches,
   getMyItems,
+  updateItem,
+  deleteItem,
 };
