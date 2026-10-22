@@ -7,8 +7,7 @@ const {
   rejectClaim,
 } = require("../controllers/claimController");
 
-const protect = require("../middleware/authMiddleware");
-
+const { protect } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 router.post("/items/:itemId", protect, createClaim);

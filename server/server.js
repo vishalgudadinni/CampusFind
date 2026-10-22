@@ -9,6 +9,8 @@ const claimRoutes = require("./routes/claimRoutes");
 const chatRoutes = require("./routes/chatRoutes");
 const returnRoutes = require("./routes/returnRoutes");
 const coinRoutes = require("./routes/coinRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const adminReportRoutes = require("./routes/adminReportRoutes");
 
 const app = express();
 
@@ -21,6 +23,8 @@ app.use("/api/claims", claimRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/returns", returnRoutes);
 app.use("/api/coins", coinRoutes);
+app.use("/api/reports", reportRoutes);
+app.use("/api/admin/reports", adminReportRoutes);
 
 app.get("/", (req, res) => {
   res.json({

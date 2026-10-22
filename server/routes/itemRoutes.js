@@ -8,8 +8,7 @@ const {
   deleteItem,
 } = require("../controllers/itemController");
 
-const protect = require("../middleware/authMiddleware");
-
+const { protect } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 // Create a lost/found item

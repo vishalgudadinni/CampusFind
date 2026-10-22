@@ -6,8 +6,7 @@ const {
   sendMessage,
 } = require("../controllers/chatController");
 
-const protect = require("../middleware/authMiddleware");
-
+const { protect } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 // Open or create chat for an accepted claim

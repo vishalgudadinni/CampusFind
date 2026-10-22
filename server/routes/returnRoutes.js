@@ -5,8 +5,7 @@ const {
   confirmReturn,
 } = require("../controllers/returnController");
 
-const protect = require("../middleware/authMiddleware");
-
+const { protect } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 // Get or create return confirmation for an accepted claim
